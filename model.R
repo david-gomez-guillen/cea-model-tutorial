@@ -17,6 +17,18 @@
 START.AGE <- 30
 HORIZON <- 40
 
+# The age groups, which are the strata of the model: a parameter can take a
+# different value in each.
+AGE.GROUPS <- c('30-39', '40-49', '50-59', '60-69')
+
+age.group <- function(age) AGE.GROUPS[(age - START.AGE) %/% 10 + 1]
+
+# The value of a parameter in an age group. A stratified parameter is a list
+# with a value per age group, and any other is a single number, so every
+# parameter is read through at(): the Parameters tab lets the user split any of
+# them into age groups.
+at <- function(value, group) if (is.list(value)) value[[group]] else value
+
 # Years between two screens of each strategy, NA for no screening.
 SCREENING.INTERVAL <- c(no_screening = NA, screening_5y = 5, screening_2y = 2, screening_1y = 1)
 
@@ -34,14 +46,15 @@ simulate <- function(strategy, pars) {
                       healthy = NA, disease = NA, dead = NA)
 
   for (year in 1:HORIZON) {
+    group <- age.group(START.AGE + year - 1)
     discount <- 1 / (1 + pars$discount.rate)^(year - 1)
 
     # A screen finds a share of the people with the disease, who are treated
     # and cured. Everyone alive is screened.
     if (!is.na(interval) && year %% interval == 0) {
-      detected <- disease * pars$sensitivity
-      cost <- cost + discount * ((healthy + disease) * pars$cost.screening +
-                                 detected * pars$cost.treatment)
+      detected <- disease * at(pars$sensitivity, group)
+      cost <- cost + discount * ((healthy + disease) * at(pars$cost.screening, group) +
+                                 detected * at(pars$cost.treatment, group))
       disease <- disease - detected
       healthy <- healthy + detected
     }
@@ -49,14 +62,14 @@ simulate <- function(strategy, pars) {
 
     # What the year costs, and its quality of life: 1 for a year in full
     # health, u.disease for a year with the disease.
-    cost <- cost + discount * disease * pars$cost.disease
-    qalys <- qalys + discount * (healthy + disease * pars$u.disease)
+    cost <- cost + discount * disease * at(pars$cost.disease, group)
+    qalys <- qalys + discount * (healthy + disease * at(pars$u.disease, group))
 
     # The transitions of the year.
-    onset <- healthy * pars$p.incidence
-    death.healthy <- healthy * pars$p.death
-    recovery <- disease * pars$p.recovery
-    death.disease <- disease * pars$p.death.disease
+    onset <- healthy * at(pars$p.incidence, group)
+    death.healthy <- healthy * at(pars$p.death, group)
+    recovery <- disease * at(pars$p.recovery, group)
+    death.disease <- disease * at(pars$p.death.disease, group)
     healthy <- healthy - onset - death.healthy + recovery
     disease <- disease + onset - recovery - death.disease
     dead <- dead + death.healthy + death.disease
