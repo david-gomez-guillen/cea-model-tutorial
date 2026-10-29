@@ -86,3 +86,40 @@ run.simulation <- function(strategies, parameters) {
   )
   list(summary = summary)
 }
+
+# ---- Calibration ------------------------------------------------------------
+
+# The error of a simulated output: how far the prevalence of each age group is
+# from the one observed, as a sum of squared relative differences. It needs the
+# output and the target alone, without running the model.
+prevalence.error <- function(output, target) {
+  observed <- unlist(target$prevalence)
+  simulated <- output$prevalence[names(observed)]
+  sum(((simulated - observed) / observed)^2)
+}
+
+# The error of a parameter set: simulates it and scores the output. The survey
+# was taken in a population that is not screened, so the reference strategy is
+# what is simulated.
+prevalence.calibration.error <- function(parameters, target) {
+  trace <- simulate('no_screening', parameters)$trace
+  output <- list(prevalence = prevalence.by.age(trace))
+  list(error = prevalence.error(output, target), output = output)
+}
+
+# The calibrations the Calibration tab offers. This one finds the incidence of
+# each age group that reproduces the prevalence a survey observed.
+get.calibration.schemes <- function() {
+  list(
+    prevalence = list(
+      description = 'Incidence by age, from the prevalence of a survey',
+      parameters = c('p.incidence'),
+      strata = AGE.GROUPS,
+      target = list(
+        prevalence = list(`30-39` = 0.012, `40-49` = 0.040, `50-59` = 0.085, `60-69` = 0.150)
+      ),
+      error_function = prevalence.calibration.error,
+      output_error = prevalence.error
+    )
+  )
+}
