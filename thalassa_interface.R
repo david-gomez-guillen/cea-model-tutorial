@@ -2,13 +2,58 @@
 
 source('model.R')
 
-# The units the results are labelled with.
+# ---- What the Overview tab shows ---------------------------------------------
+
+# The text of the Overview tab, in Markdown. It is read from a file of the
+# repository, by its path relative to the directory of the model.
+get.overview <- function() {
+  readLines('overview.md')
+}
+
+# The states of the model and the transitions between them, which the Overview
+# tab draws as a diagram. The descriptions are shown when a state or an arrow is
+# hovered.
+get.model.states <- function() {
+  list(
+    nodes = data.frame(
+      id = c('healthy', 'disease', 'dead'),
+      label = c('Healthy', 'Disease', 'Dead'),
+      description = c('Without the disease.', 'With the disease, found or not.', 'Absorbing state.')
+    ),
+    edges = data.frame(
+      from = c('healthy', 'disease', 'disease', 'healthy'),
+      to = c('disease', 'healthy', 'dead', 'dead'),
+      label = c('Onset', 'Recovery or screening', 'Death', 'Death'),
+      description = c('p.incidence', 'p.recovery, and sensitivity in a screening year',
+                      'p.death.disease', 'p.death')
+    )
+  )
+}
+
+# Code the Overview tab shows, to explain how the model works. It is shown and
+# never run, so it can be a simplified version of the real code.
+get.code.sample <- function() {
+  "# The transitions of one year of the cohort
+onset <- healthy * p.incidence
+death.healthy <- healthy * p.death
+recovery <- disease * p.recovery
+death.disease <- disease * p.death.disease
+healthy <- healthy - onset - death.healthy + recovery
+disease <- disease + onset - recovery - death.disease
+dead <- dead + death.healthy + death.disease"
+}
+
+# The units the results are labelled with, and whether the AI assistant and the
+# agentic calibration may read the code of the model.
 get.model.settings <- function() {
   list(
     cost.unit = '€',
-    effectiveness.unit = 'QALY'
+    effectiveness.unit = 'QALY',
+    allow.code.reading = TRUE
   )
 }
+
+# ---- The model --------------------------------------------------------------
 
 # The strata of the model: the age groups of model.R.
 get.strata <- function() {
@@ -16,17 +61,32 @@ get.strata <- function() {
 }
 
 # The strategies, each with the name run.simulation() is asked for, the name the
-# app shows and a description.
+# app shows, a description and its attributes, declared below.
 get.strategies <- function() {
   list(
     list(name = 'no_screening', display.name = 'No screening',
-         description = 'The disease is only found when it causes symptoms.'),
+         description = 'The disease is only found when it causes symptoms.',
+         attributes = list(screening = 'No')),
     list(name = 'screening_5y', display.name = 'Screening every 5 years',
-         description = 'Everyone is screened at ages 34, 39, 44 and so on.'),
+         description = 'Everyone is screened at ages 34, 39, 44 and so on.',
+         attributes = list(screening = 'Yes', frequency = '2 per decade')),
     list(name = 'screening_2y', display.name = 'Screening every 2 years',
-         description = 'Everyone is screened at ages 31, 33, 35 and so on.'),
+         description = 'Everyone is screened at ages 31, 33, 35 and so on.',
+         attributes = list(screening = 'Yes', frequency = '5 per decade')),
     list(name = 'screening_1y', display.name = 'Yearly screening',
-         description = 'Everyone is screened every year.')
+         description = 'Everyone is screened every year.',
+         attributes = list(screening = 'Yes', frequency = '10 per decade'))
+  )
+}
+
+# What describes the strategies: a column of the Strategies tab each, and how
+# the base case plot draws them. Whether a strategy screens is the shape of its
+# point, and how often it does its fill, darker the more often.
+get.strategy.attributes <- function() {
+  list(
+    screening = list(label = 'Screening', plot = 'shape',
+                     values = c(No = 'square', Yes = 'circle')),
+    frequency = list(label = 'Screens', plot = 'fill', ordered = TRUE)
   )
 }
 
