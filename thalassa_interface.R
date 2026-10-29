@@ -30,6 +30,16 @@ get.strategies <- function() {
   )
 }
 
+# A constraint on the parameters: the disease cannot make death less likely.
+# It returns TRUE when the values are acceptable, and the message the app shows
+# when they are not. unlist() reads a parameter the user has split into age
+# groups as all its values.
+death.more.likely.with.disease <- function(par.name, params) {
+  if (any(unlist(params$p.death.disease) <= unlist(params$p.death)))
+    'The probability of death with the disease must be above the one without it'
+  else TRUE
+}
+
 # The parameters of the model. Besides its name and value, each says what it is
 # (display.name), which section it belongs to (class), the range it can take
 # (min.value, max.value) and what the PSA draws it from (distribution).
@@ -43,12 +53,14 @@ get.parameters <- function() {
     list(name = 'p.recovery', display.name = 'Annual probability of recovering without screening',
          base.value = 0.05, class = 'Natural history', min.value = 0, max.value = 1,
          distribution = 'beta'),
+    # The constraint is declared on both parameters it involves, so the app
+    # points at both, whichever of them the user changes.
     list(name = 'p.death', display.name = 'Annual probability of death without the disease',
          base.value = 0.01, class = 'Natural history', min.value = 0, max.value = 1,
-         distribution = 'beta'),
+         distribution = 'beta', constraints = death.more.likely.with.disease),
     list(name = 'p.death.disease', display.name = 'Annual probability of death with the disease',
          base.value = 0.03, class = 'Natural history', min.value = 0, max.value = 1,
-         distribution = 'beta'),
+         distribution = 'beta', constraints = death.more.likely.with.disease),
 
     # Screening. The DSA varies the sensitivity over the range the literature
     # gives for it, rather than by the percentage set in the DSA tab.
@@ -119,7 +131,22 @@ get.calibration.schemes <- function() {
         prevalence = list(`30-39` = 0.012, `40-49` = 0.040, `50-59` = 0.085, `60-69` = 0.150)
       ),
       error_function = prevalence.calibration.error,
-      output_error = prevalence.error
+      output_error = prevalence.error,
+      # The search is kept where the incidence does not fall with age. x holds
+      # the incidence of each age group, in the order of AGE.GROUPS, and each
+      # value returned is a constraint, met when it is 0 or less: here, minus
+      # the increase from one age group to the next.
+      constraints = function(x, partial = FALSE) {
+        # A stepwise calibration goes one age group at a time and asks about
+        # the ones it has so far. The first step has nothing to compare yet:
+        # the -1, always met, still gives it a constraint.
+        if (partial) return(c(-1, -diff(x)))
+        -diff(x)
+      },
+      # The same, in words: shown in the tab and given to the agentic method.
+      constraints_description = function() {
+        'The incidence must not decrease from one age group to the next.'
+      }
     )
   )
 }
