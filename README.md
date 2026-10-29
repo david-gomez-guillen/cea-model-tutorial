@@ -3,7 +3,7 @@
 A model of screening for a hypothetical chronic disease, built up stage by stage
 in the model integration tutorial of THALASSA.
 
-This branch is **Stage 6: Presenting the model**, which [the tutorial](https://david-gomez-guillen.github.io/thalassa/docs/tutorial/stage-6-presentation.html)
+This branch is **Stage 7: Packages and evaluation plots**, which [the tutorial](https://david-gomez-guillen.github.io/thalassa/docs/tutorial/stage-7-packages.html)
 explains. Each stage is a branch of this repository:
 
 - [`stage-1-minimal`](https://david-gomez-guillen.github.io/thalassa/docs/tutorial/stage-1-minimal.html)
