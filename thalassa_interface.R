@@ -12,6 +12,16 @@ get.strategies <- function() {
   c('no_screening', 'screening_5y', 'screening_2y', 'screening_1y')
 }
 
+# A constraint on the parameters: the disease cannot make death less likely.
+# It returns TRUE when the values are acceptable, and the message the app shows
+# when they are not. unlist() reads a parameter the user has split into age
+# groups as all its values.
+death.more.likely.with.disease <- function(par.name, params) {
+  if (any(unlist(params$p.death.disease) <= unlist(params$p.death)))
+    'The probability of death with the disease must be above the one without it'
+  else TRUE
+}
+
 # The parameters of the model. Besides its name and value, each says the range it
 # can take (min.value, max.value) and what the PSA draws it from (distribution).
 get.parameters <- function() {
@@ -23,10 +33,12 @@ get.parameters <- function() {
          min.value = 0, max.value = 1, distribution = 'beta'),
     list(name = 'p.recovery', base.value = 0.05, min.value = 0, max.value = 1,
          distribution = 'beta'),
+    # The constraint is declared on both parameters it involves, so the app
+    # points at both, whichever of them the user changes.
     list(name = 'p.death', base.value = 0.01, min.value = 0, max.value = 1,
-         distribution = 'beta'),
+         distribution = 'beta', constraints = death.more.likely.with.disease),
     list(name = 'p.death.disease', base.value = 0.03, min.value = 0, max.value = 1,
-         distribution = 'beta'),
+         distribution = 'beta', constraints = death.more.likely.with.disease),
 
     # Screening. The DSA varies the sensitivity over the range the literature
     # gives for it, rather than by the percentage set in the DSA tab.
