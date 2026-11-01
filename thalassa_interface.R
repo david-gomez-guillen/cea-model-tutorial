@@ -112,7 +112,22 @@ get.calibration.schemes <- function() {
         prevalence = list(`30-39` = 0.012, `40-49` = 0.040, `50-59` = 0.085, `60-69` = 0.150)
       ),
       error_function = prevalence.calibration.error,
-      output_error = prevalence.error
+      output_error = prevalence.error,
+      # The search is kept where the incidence does not fall with age. x holds
+      # the incidence of each age group, in the order of AGE.GROUPS, and each
+      # value returned is a constraint, met when it is 0 or less: here, minus
+      # the increase from one age group to the next.
+      constraints = function(x, partial = FALSE) {
+        # A stepwise calibration goes one age group at a time and asks about
+        # the ones it has so far. The first step has nothing to compare yet:
+        # the -1, always met, still gives it a constraint.
+        if (partial) return(c(-1, -diff(x)))
+        -diff(x)
+      },
+      # The same, in words: shown in the tab and given to the agentic method.
+      constraints_description = function() {
+        'The incidence must not decrease from one age group to the next.'
+      }
     )
   )
 }
