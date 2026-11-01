@@ -3,7 +3,7 @@
 A model of screening for a hypothetical chronic disease, built up stage by stage
 in the model integration tutorial of THALASSA.
 
-This branch is **Logic 6: Constraints on a calibration**, which [`tutorial.md`](tutorial.md) explains, and
+This branch is **Presentation 1: Names and units**, which [`tutorial.md`](tutorial.md) explains, and
 the Overview tab of the app shows. Each stage is a branch of this repository.
 
 The logic of the model:

@@ -1,102 +1,132 @@
-# Logic 6: Constraints on a calibration
+# Presentation 1: Names and units
 
-*Stage 6 of 12 of the model integration tutorial, in its block on the
-logic of the model. Each stage is a version of this model: pick another
-one in the model bar to move to it. The **Code sample** section of this
-tab shows `thalassa_interface.R` as far as the tutorial has explained
-it.*
+*Stage 7 of 12 of the model integration tutorial, in its block on the
+presentation of the model. Each stage is a version of this model: pick
+another one in the model bar to move to it. The **Code sample** section
+of this tab shows `thalassa_interface.R` as far as the tutorial has
+explained it.*
 
-The incidence of the disease should not fall with age, and nothing has
-told the calibration so. In this stage the scheme of Logic
-5 says it, which keeps the search inside the
-region where the values make sense.
+The model computes everything it is going to, but the app still shows it
+by the names its code uses: `p.incidence`, `screening_5y`. In this stage
+the interface describes the parameters and the strategies, so that
+anyone using the app can tell what they are.
 
-This is separate from the constraints of Logic
-4, and a model can have either one without the
-other: those check the values someone is about to run, and these guide a
-search.
+Only `thalassa_interface.R` changes. `model.R` is the same as in Logic
+6, and so are the results.
 
-## The constraints of a scheme
+## Describing the parameters
 
-A calibration does not read the parameter constraints. It searches over
-a vector of numbers, the *calibration vector*: here, the incidence of
-the four age groups, in the order of `AGE.GROUPS`. A scheme constrains
-that vector with a `constraints` function of its own:
+Each entry of `get.parameters()` gains two more fields:
 
 ``` r
-      # The search is kept where the incidence does not fall with age. x holds
-      # the incidence of each age group, in the order of AGE.GROUPS, and each
-      # value returned is a constraint, met when it is 0 or less: here, minus
-      # the increase from one age group to the next.
-      constraints = function(x, partial = FALSE) {
-        # A stepwise calibration goes one age group at a time and asks about
-        # the ones it has so far. The first step has nothing to compare yet:
-        # the -1, always met, still gives it a constraint.
-        if (partial) return(c(-1, -diff(x)))
-        -diff(x)
-      },
-      # The same, in words: shown in the tab and given to the agentic method.
-      constraints_description = function() {
-        'The incidence must not decrease from one age group to the next.'
-      }
+# The parameters of the model. Besides its name and value, each says what it is
+# (display.name), which section it belongs to (class), the range it can take
+# (min.value, max.value) and what the PSA draws it from (distribution).
+get.parameters <- function() {
+  list(
+    # Natural history of the disease. The incidence grows with age, so it is
+    # stratified: its base.value is a list with a value per age group.
+    list(name = 'p.incidence', display.name = 'Annual probability of developing the disease',
+         base.value = list(`30-39` = 0.004, `40-49` = 0.008, `50-59` = 0.015, `60-69` = 0.025),
+         class = 'Natural history', min.value = 0, max.value = 1, distribution = 'beta'),
+    list(name = 'p.recovery', display.name = 'Annual probability of recovering without screening',
+         base.value = 0.05, class = 'Natural history', min.value = 0, max.value = 1,
+         distribution = 'beta'),
+    # The constraint is declared on both parameters it involves, so the app
+    # points at both, whichever of them the user changes.
+    list(name = 'p.death', display.name = 'Annual probability of death without the disease',
+         base.value = 0.01, class = 'Natural history', min.value = 0, max.value = 1,
+         distribution = 'beta', constraints = death.more.likely.with.disease),
+    list(name = 'p.death.disease', display.name = 'Annual probability of death with the disease',
+         base.value = 0.03, class = 'Natural history', min.value = 0, max.value = 1,
+         distribution = 'beta', constraints = death.more.likely.with.disease),
+
+    # Screening. The DSA varies the sensitivity over the range the literature
+    # gives for it, rather than by the percentage set in the DSA tab.
+    list(name = 'sensitivity', display.name = 'Sensitivity of the screening test',
+         base.value = 0.75, class = 'Screening', min.value = 0, max.value = 1,
+         distribution = 'beta', dsa.range = c(0.6, 0.9)),
+
+    # Costs
+    list(name = 'cost.screening', display.name = 'Cost of a screen',
+         base.value = 150, class = 'Costs', min.value = 0, distribution = 'gamma'),
+    list(name = 'cost.treatment', display.name = 'Cost of treating a case found by screening',
+         base.value = 2000, class = 'Costs', min.value = 0, distribution = 'gamma'),
+    list(name = 'cost.disease', display.name = 'Annual cost of living with the disease',
+         base.value = 300, class = 'Costs', min.value = 0, distribution = 'gamma'),
+
+    # Quality of life
+    list(name = 'u.disease', display.name = 'Utility of a year with the disease',
+         base.value = 0.85, class = 'Quality of life', min.value = 0, max.value = 1,
+         distribution = 'beta'),
+
+    # The discount rate is a convention rather than an uncertain value: hidden,
+    # the user never sees or changes it.
+    list(name = 'discount.rate', base.value = 0.03, hidden = TRUE)
+  )
+}
 ```
 
-It returns one number per constraint, and a constraint is met when its
-number is 0 or less. Returning numbers rather than `TRUE` or `FALSE`
-lets some methods learn how close the search is to the edge of the
-region.
+| Field | What it does |
+|----|----|
+| `display.name` | A description shown next to the name, in the Parameters tab and in the DSA and PSA trees. |
+| `class` | The section the parameter is listed under. Parameters with the same class are grouped together. |
 
-`-diff(x)` holds the decrease from each age group to the next, which
-must be 0 or less. At the base values every constraint is met, and an
-incidence that falls from the first age group to the second breaks the
-first constraint:
-
-``` r
-scheme <- get.calibration.schemes()$prevalence
-scheme$constraints(c(0.004, 0.008, 0.015, 0.025))
-scheme$constraints(c(0.004, 0.003, 0.015, 0.025))
-```
-
-    [1] -0.004 -0.007 -0.010
-    [1]  0.001 -0.012 -0.010
-
-The `partial` argument is only needed for a *stepwise* calibration,
-which the Calibration tab offers for a model with strata: it calibrates
-one age group at a time and asks about the age groups it has calibrated
-so far. A scheme that leaves out the argument still works, but then a
-stepwise calibration cannot check each step on its own.
-
-`constraints_description` says the same in words. The Calibration tab
-shows it, and the agentic calibration method reads it.
-
-## What works now
-
-Open the **Calibration** tab:
+The Parameters tab now groups the parameters by class and describes each
+one:
 
 <figure style="margin: 15px 0;">
-<img src="https://raw.githubusercontent.com/david-gomez-guillen/cea-model-tutorial/logic-6-calibration-constraints/images/logic6_calibration.png" alt="A constrained calibration scheme" style="max-width: 100%;" />
-<figcaption style="font-style: italic;">A constrained calibration scheme</figcaption>
+<img src="https://raw.githubusercontent.com/david-gomez-guillen/cea-model-tutorial/presentation-1-names/images/presentation1_parameters.png" alt="The Parameters tab with the parameters described" style="max-width: 100%;" />
+<figcaption style="font-style: italic;">The Parameters tab with the parameters described</figcaption>
 </figure>
 
-A constrained scheme changes what the tab offers:
+## Describing the strategies
 
-- the Bayesian optimization methods get a **Use constraint modeling**
-  switch, which learns the constraints from the evaluations as the
-  search goes;
-- SCBO, a method built for constrained problems, appears in the method
-  list.
+`get.strategies()` can return one entry per strategy instead of a vector
+of names:
 
-On the error plot, evaluations that break a constraint are shaded in
-red. You can see them in the figure of Presentation
-4.
+``` r
+# The strategies, each with the name run.simulation() is asked for, the name the
+# app shows and a description.
+get.strategies <- function() {
+  list(
+    list(name = 'no_screening', display.name = 'No screening',
+         description = 'The disease is only found when it causes symptoms.'),
+    list(name = 'screening_5y', display.name = 'Screening every 5 years',
+         description = 'Everyone is screened at ages 34, 39, 44 and so on.'),
+    list(name = 'screening_2y', display.name = 'Screening every 2 years',
+         description = 'Everyone is screened at ages 31, 33, 35 and so on.'),
+    list(name = 'screening_1y', display.name = 'Yearly screening',
+         description = 'Everyone is screened every year.')
+  )
+}
+```
 
-## The end of the logic
+- `name` is still what `run.simulation()` receives, so the model does
+  not change.
+- `display.name` is what the app shows.
+- `description` is shown in the Strategies tab, and as a tooltip in the
+  Base case tab.
 
-Every analysis of the app now works on this model, and the logic of the
-model is complete. From here on `model.R` does not change, and neither
-do the results: `try_model.R` prints the same in every stage that
-follows. They change how the model reads to the people who use it. A
-model only you will run can stop here.
+## Units
 
-**Next:** pick the version **presentation-1-names** in the model bar,
-for *Presentation 1: Names and units*.
+`get.model.settings()` also names the units of cost and effectiveness,
+which label the columns and axes of the results:
+
+``` r
+# The units the results are labelled with, and whether the AI assistant and the
+# agentic calibration may read the code of the model.
+get.model.settings <- function() {
+  list(
+    cost.unit = '€',
+    effectiveness.unit = 'QALY',
+    allow.code.reading = TRUE
+  )
+}
+```
+
+These two are the defaults, so this model could leave them out. A model
+that counts life years, or costs in dollars, would set them here.
+
+**Next:** pick the version **presentation-2-markers** in the model bar,
+for *Presentation 2: Strategy markers*.
