@@ -77,3 +77,12 @@ simulate <- function(strategy, pars) {
 
   list(cost = cost, effectiveness = qalys, trace = trace)
 }
+
+# The share of the people alive who have the disease, averaged over the years
+# of each age group, from the trace of a simulation. This is what the
+# calibration compares with the prevalence observed in a survey.
+prevalence.by.age <- function(trace) {
+  prevalence <- trace$disease / (trace$healthy + trace$disease)
+  groups <- age.group(trace$age)
+  sapply(AGE.GROUPS, function(group) mean(prevalence[groups == group]))
+}
