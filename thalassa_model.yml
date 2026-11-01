@@ -1,4 +1,0 @@
-# The versions of the packages of this model. Everything else it needs is still
-# found in its code.
-versions:
-  ggplot2: ">=4.0,<5"

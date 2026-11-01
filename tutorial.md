@@ -1,224 +1,156 @@
-# Setup 1: The dependencies of a model
+# Setup 2: A conda environment of your own
 
-*Stage 11 of 12 of the model integration tutorial, in its block on what
+*Stage 12 of 12 of the model integration tutorial, in its block on what
 the model needs to run. Each stage is a version of this model: pick
 another one in the model bar to move to it. The **Code sample** section
 of this tab shows the complete `thalassa_interface.R` of this stage.*
 
-The model is complete, and it reads well. This stage is about something
-around it: the packages it needs, and how they get to where the model
-runs. It is what most often confuses someone connecting their first
-model, so it starts from the beginning. You can read it without changing
-anything: for most models, the answer turns out to be that there is
-nothing to do.
+Setup 1 let the app work out the environment
+of the model, with you adding to it where needed. This stage does the
+opposite: you write down the whole environment yourself. **Most models
+never need this.** If your model only uses R packages, you can skip this
+page.
 
-`model.R` and the results do not change. This version adds one small
-file, `thalassa_model.yml`, explained below.
+`model.R` and the results do not change. This version replaces the
+`thalassa_model.yml` of the last stage with an `environment.yml`.
 
-## What a dependency is
+## When you need it
 
-A *dependency* is anything your code needs and does not contain. The
-model of this tutorial uses ggplot2 for its evaluation plot:
+Use an `environment.yml` when the model needs something that is not an R
+package:
 
-``` r
-library(ggplot2)
-```
+- **another language**, whichever it is, when part of the model is
+  written in it;
+- **a system library**, which some R packages need to be installed
+  first, or another program the model runs;
+- **a package from a channel other than conda-forge**.
 
-That line works on your computer because ggplot2 is installed on your
-computer. It says nothing about where the package comes from, or which
-version it is. Run the same line on a computer without ggplot2 and it
-fails.
+Whatever else the model is written in, `thalassa_interface.R` is always
+R: it is what the app reads, and it calls the rest.
 
-## Where a model runs
+If you only want to choose the versions of some R packages, `versions`
+in `thalassa_model.yml` does that with less to
+maintain.
 
-THALASSA does not run your model with the R on your computer, and not
-with the packages of the app either. Each model runs in an *environment*
-of its own: a folder holding a copy of R and exactly the packages that
-model needs. The app builds it with conda, a tool that installs software
-into such folders. You don’t need to know conda to use this.
+## The file
 
-Three things follow from this, and they explain most of the surprises:
-
-- **The packages you have installed do not count.** Having a package in
-  your own R does not put it in the environment of the model.
-- **`try_model.R` does not test the environment.** `Rscript try_model.R`
-  runs in your own R, so it can work while the app fails, or the other
-  way round. It tells you the model is right. Only loading it in the app
-  tells you its dependencies are.
-- **Models don’t get in each other’s way.** Two models can use different
-  versions of a package, because each has its own.
-
-## What happens when you load a version
-
-1.  The app works out what this version of the model depends on.
-2.  If an environment with exactly those dependencies exists, the app
-    uses it, and the model loads straight away.
-3.  If not, the app builds one. The tabs stay empty meanwhile, with a
-    message saying `Preparing the environment of` the model and what it
-    is doing, and the rest of the app keeps working. The message says
-    this takes seconds, but it can take from under a minute to several
-    minutes, depending on how many packages it has to fetch.
-4.  When it finishes, the model loads by itself.
-
-This happens once for each set of dependencies. Changing your model’s
-code does not build anything, and neither does loading another version
-that depends on the same things. Only a change of dependencies builds a
-new environment.
-
-## The default: say nothing
-
-If your code loads its packages in the usual way, you don’t have to
-declare them. The app reads your code without running it, finds the
-packages, and installs them. That is what happened in Presentation
-4: it added `library(ggplot2)` and nothing
-else.
-
-It recognises these, in `thalassa_interface.R` and in every file it
-reaches with `source('some_file.R')`:
-
-| In your code                              | Example                       |
-|-------------------------------------------|-------------------------------|
-| `library()` or `require()`                | `library(ggplot2)`            |
-| `requireNamespace()` or `loadNamespace()` | `requireNamespace('ggplot2')` |
-| A function called through its package     | `ggplot2::ggplot(df)`         |
-
-Each package is installed from conda-forge, the collection of software
-conda reads from, or from CRAN if conda-forge does not have it. The
-latest version available is used, as of the day the environment is
-built. The packages that come with R itself, such as `stats` or `utils`,
-are never installed separately.
-
-**For most models this is all you need, and you can skip to the section
-*Checking that it works*, below.**
-
-### What the app cannot see
-
-It reads your code rather than running it, so it misses a package whose
-name is only known when the code runs:
-
-``` r
-pkg <- 'ggplot2'
-library(pkg, character.only = TRUE)   # not found: the name is in a variable
-```
-
-Write `library(ggplot2)` instead. If that is not possible, name the
-package under `versions` in `thalassa_model.yml`, as the next section
-explains, which installs it whether the code seems to use it or not. A
-low minimum, such as `zoo: ">=1.8"`, is enough when you don’t mind which
-version it is.
-
-Files are only followed through `source()`. A path it has to compute,
-such as `source(file.path('R', 'model.R'))`, cannot be followed, so the
-app reads every R file of the repository instead. That finds the
-packages, and may install some you no longer use.
-
-## Choosing the versions
-
-Saying nothing means taking the latest version of each package, the day
-the environment is built. That is usually fine, until a new release
-changes how a package behaves, and the same model built later stops
-working or gives other results. Pinning a version prevents that.
-
-Versions are pinned in a file named `thalassa_model.yml`, at the root of
-the repository. This is the one this version of the model adds:
+`environment.yml` is the standard file conda describes an environment
+with, and goes at the root of the repository. This is the one this
+version of the model adds:
 
 ``` yaml
-# The versions of the packages of this model. Everything else it needs is still
-# found in its code.
-versions:
-  ggplot2: ">=4.0,<5"
+# Everything this model runs with. The app installs this and nothing else.
+channels:
+  - conda-forge
+dependencies:
+  - r-base=4.5
+  - r-ggplot2>=4.0,<5
 ```
 
-The evaluation plot was written for ggplot2 4, so this asks for any
-version of it, and not for the next major release, whose changes could
-break it. Under `versions` goes the name of each package you want to
-pin, as many as you need. A version can be written in these ways:
+Line by line:
 
-| You write | It means | Use it when |
+- `channels` are where conda looks for packages. conda-forge has most of
+  what a model needs.
+- `dependencies` lists what to install, one per line.
+- `r-base` is R itself. An R package goes by its name in lower case
+  after `r-`, so ggplot2 is `r-ggplot2`, and `data.table` is
+  `r-data.table`.
+- After the name comes the version, written as in `thalassa_model.yml`
+  but without quotes: `r-ggplot2>=4.0,<5`.
+
+## What changes when you use one
+
+With this file, the app stops working out what to install. That is the
+big difference, and the usual source of trouble:
+
+|  | Saying nothing | With `environment.yml` |
 |----|----|----|
-| `dplyr: "1.1.4"` | Exactly this version | The results have to be reproducible exactly |
-| `ggplot2: ">=4.0,<5"` | Any version in this range | You want fixes, but not a new major release |
-| `R: "4.4.*"` | Any 4.4 version | Choosing the version of R itself, under the name `R` |
+| Which packages are installed | Those found in your code | Only those you list |
+| You add a `library()` to the code | Installed by itself | **The build fails** until you list it too |
+| A package not on conda-forge | Installed from CRAN | **Not found**: CRAN is not used |
+| You have to keep up to date | Nothing | The file, by hand |
 
-A few things to watch for:
+The app still reads your code, to check the result. If your code uses a
+package the environment did not end up with, the build stops. The
+message on screen only says `could not be built`, and that a command
+`failed with status 1`. The reason is in the **Output** tab, just above
+that line:
 
-- **Always use quotes.** The file format reads `1.10` without quotes as
-  the number 1.1, which is another version. The app refuses a version
-  with no quotes.
-- **Keep the dash of an R version**, as in `zoo: "1.8-12"`.
-- **A pinned package is always installed**, even if your code does not
-  seem to use it. So this is also the way to add a package the app
-  cannot see.
-- **An old version may need an old R.** If the environment cannot be
-  built after pinning an old package, pin `R` as well, to a version from
-  around the same time.
-- **Changing a pin builds a new environment**, the next time that
-  version is loaded.
+    Checking that the packages load: ggplot2, callr
+    Cannot load ggplot2: there is no package called 'ggplot2'
 
-## Packages that are only on git
+To fix it, add the package to the file, here as `r-ggplot2`, then commit
+and push.
 
-A package you keep in a git repository of your own is on neither
-conda-forge nor CRAN, so the app has to be told where it is. This goes
-in the same file:
+A few more details:
+
+- The file can also be named `environment.yaml`.
+- A `name` or a `prefix` in the file is ignored, since the app chooses
+  where the environment goes. You can leave them out.
+- You don’t have to list what the app itself needs to talk to the model.
+  It adds `r-base` and `r-callr` if they are missing.
+- A `thalassa_model.yml` still works beside it: packages from git are
+  installed on top, and pins apply to anything the file does not list.
+  It is simpler to keep every version in one place.
+
+## Using other languages
+
+A model can be written in any language, as long as
+`thalassa_interface.R` can call it. There are two usual ways to do that:
+
+- **An R package that connects to the language**, which lets R call that
+  code directly. There are such packages for many languages, such as
+  reticulate for Python, Rcpp for C++ and JuliaCall for Julia.
+- **Running a program**, with `system2()` in R. This works for any
+  language: the model runs a command, and reads back what it prints or
+  the file it writes. Whatever the environment installs can be run this
+  way.
+
+Either way, the file lists what that takes: the language or the program,
+what your code in that language uses, and the R package that connects to
+it, if there is one. This is what it could look like for a model that
+also runs Python code, as one example. It is not part of this version of
+the model, which only uses R:
 
 ``` yaml
-r_packages:
-  mypackage:
-    git: https://github.com/your-account/mypackage
-    ref: v1.2.0     # a tag, a branch or a commit; the default branch if left out
-    subdir: .       # where the package is in the repository, if not at its root
+channels:
+  - conda-forge
+dependencies:
+  - r-base=4.5
+  - r-reticulate
+  - python=3.12
+  - numpy
 ```
 
-The name, `mypackage` here, is the name your code loads it by. What the
-package imports in its `DESCRIPTION` is installed along with it. Prefer
-a tag for `ref`: a branch changes with every commit, and each change
-builds a new environment. Its version is chosen by `ref`, and pinning it
-under `versions` as well is refused.
-
-## Checking that it works
-
-1.  Run `Rscript try_model.R`. If it fails, the problem is in the model,
-    not in its dependencies, and it is easier to read there.
-2.  Commit and push your changes: the app reads the repository, not the
-    folder on your computer.
-3.  In the model bar, use **Refresh repository**, then pick the version.
-    Wait for the environment if it has to be built.
-4.  If something went wrong, open the **Output** tab, at the right end
-    of the tab row. It shows what the model printed, and the error.
-
-These are the problems you are most likely to meet, with what the app
-says about them:
-
-| What the app says | What it means | What to do |
-|----|----|----|
-| `there is no package called 'zoo'`, in a message saying the version `doesn't have a valid thalassa_interface.R` | The code loads a package the environment doesn’t have, because the app could not see it in the code | Load it with a plain `library(zoo)`, or name it under `versions` |
-| `Not found on conda-forge nor on CRAN: zoo2` | The name is misspelled, or the package is only on git | Fix the name, or declare it under `r_packages` |
-| `The version of 'ggplot2' in thalassa_model.yml has to be a quoted version or range` | A version with no quotes | Add the quotes |
-| `could not be built`, with nothing that explains why | The build failed. The message only has its last line | Read the **Output** tab, where the reason is above that line. It is often a pinned version that does not exist, or that needs another version of R |
-
-A package you installed in your own R and forgot about shows up as the
-first of these: `try_model.R` works on your computer, and the app does
-not.
-
-## Which to use
-
-| What you need | What to do |
-|----|----|
-| Your code loads its packages in the usual way | Nothing |
-| A package the app cannot see in your code | Name it under `versions` in `thalassa_model.yml`, with a low minimum |
-| Results that don’t change when packages are updated | Pin versions under `versions` |
-| A package that is only on git | Declare it under `r_packages` in `thalassa_model.yml` |
-| Another language, a system library, or anything that is not an R package | An `environment.yml`: Setup 2 |
+`python` and `numpy` have no `r-` in front, since they are not R
+packages. Other languages work the same way, with their own entries,
+such as `r-rcpp` and `compilers` for C++, `r-juliacall` and `julia` for
+Julia, or `openjdk` for a program in Java. Look up the name of anything
+else on [conda-forge](https://conda-forge.org/packages/).
 
 ## What works now
 
-The tabs show nothing new: pinning a version changes what the model runs
-with, not what it does. The results are the same as in Presentation
-4.
+As in the last stage, the tabs show nothing new and the results are the
+same. Load the version and check the **Output** tab if anything goes
+wrong: everything in *Checking that it works*, in Setup
+1, applies here too.
 
-The first load of this version may take a moment longer than the last
-one, since a pin is a change of dependencies, and builds an environment
-of its own.
+## Going further
 
-**Next:** pick the version **setup-2-environment** in the model bar, for
-*Setup 2: A conda environment of your own*.
+This is the end of the tutorial. The model now uses every part of the
+interface most models need. Some features were left out to keep it
+short:
+
+- **Groups of strategies**, shown under headings in the tabs, and the
+  `style` of a single strategy’s marker.
+- **Several state diagrams**, each in a tab of its own.
+- An **`initial_guess`** for a calibration scheme, and a
+  **`latent_space_training_set`**, for the methods that search a latent
+  space.
+- Calibration targets in a model **without strata**.
+
+The <a href="https://david-gomez-guillen.github.io/thalassa/docs/reference/thalassa_interface_requirements.html" target="_blank">interface
+reference</a> covers every
+function and field, and
+<a href="https://david-gomez-guillen.github.io/thalassa/docs/reference/thalassa_interface_example.R" target="_blank"><code>thalassa_interface_example.R</code></a>
+is a compact example of the whole interface.
