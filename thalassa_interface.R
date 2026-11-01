@@ -1,5 +1,7 @@
 # What THALASSA reads the model through.
 
+library(ggplot2)
+
 source('model.R')
 
 # The units the results are labelled with, and whether the AI assistant and the
@@ -136,6 +138,28 @@ prevalence.calibration.error <- function(parameters, target) {
   list(error = prevalence.error(output, target), output = output)
 }
 
+# A plot of one evaluation of a calibration: the incidence it tried in each age
+# group, next to the base value of that group. The Calibration tab draws it under
+# the calibration curve, for the evaluation hovered on the error plot. `values` holds
+# the calibrated parameters and the simulated outputs of that evaluation, the
+# incidence of an age group named as p.incidence.<age group>.
+incidence.plot <- function(values) {
+  incidence <- Filter(function(p) p$name == 'p.incidence', get.parameters())[[1]]
+  base <- unname(unlist(incidence$base.value)[AGE.GROUPS])
+  tried <- unname(values[paste0('p.incidence.', AGE.GROUPS)])
+  df <- data.frame(group = rep(AGE.GROUPS, 2),
+                   series = rep(c('This evaluation', 'Base value'), each = length(AGE.GROUPS)),
+                   incidence = c(tried, base))
+  # The app shows the text aesthetic when a point is hovered.
+  df$text <- sprintf('Age %s, %s: %.4f', df$group, tolower(df$series), df$incidence)
+  ggplot(df, aes(x = group, y = incidence, colour = series, group = series, text = text)) +
+    geom_line() +
+    geom_point() +
+    scale_colour_manual(values = c(`This evaluation` = 'black', `Base value` = 'grey60')) +
+    labs(x = 'Age group', y = 'Annual incidence', colour = NULL) +
+    theme_minimal()
+}
+
 # The calibrations the Calibration tab offers. This one finds the incidence of
 # each age group that reproduces the prevalence a survey observed.
 get.calibration.schemes <- function() {
@@ -163,7 +187,9 @@ get.calibration.schemes <- function() {
       # The same, in words: shown in the tab and given to the agentic method.
       constraints_description = function() {
         'The incidence must not decrease from one age group to the next.'
-      }
+      },
+      # Plots of one evaluation, each under the title it is listed by.
+      evaluation.plots = list(`Incidence against its base value` = incidence.plot)
     )
   )
 }

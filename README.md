@@ -3,7 +3,7 @@
 A model of screening for a hypothetical chronic disease, built up stage by stage
 in the model integration tutorial of THALASSA.
 
-This branch is **Presentation 3: Explaining the model**, which [`tutorial.md`](tutorial.md) explains, and
+This branch is **Presentation 4: Evaluation plots**, which [`tutorial.md`](tutorial.md) explains, and
 the Overview tab of the app shows. Each stage is a branch of this repository.
 
 The logic of the model:

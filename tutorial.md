@@ -1,111 +1,81 @@
-# Presentation 3: Explaining the model
+# Presentation 4: Evaluation plots
 
-*Stage 9 of 12 of the model integration tutorial, in its block on the
+*Stage 10 of 12 of the model integration tutorial, in its block on the
 presentation of the model. Each stage is a version of this model: pick
 another one in the model bar to move to it. The **Code sample** section
 of this tab shows the complete `thalassa_interface.R` of this stage.*
 
-This stage explains the model to the people who use it, in the Overview
-tab. Every function here is optional. This tutorial has used two of them
-since Logic 1, to show its pages and its code in that
-tab.
+This stage draws a plot of its own in the Calibration tab. So far the
+model has used base R alone, and this plot needs a package, ggplot2.
 
-## The overview
+## An evaluation plot
 
-`get.overview()` returns the text of the Overview tab, in Markdown.
-Keeping the text in a file of its own makes it easier to edit. This
-tutorial uses it to show the page of this stage, which is in
-`tutorial.md`:
+The Calibration tab plots the outputs of each evaluation against the
+target. A scheme can add plots of its own, of whatever else helps judge
+an evaluation. The base values of the incidence were a guess, so this
+one draws the incidence an evaluation tried in each age group next to
+them:
 
 ``` r
-# The text of the Overview tab, in Markdown: here, the page of the tutorial for
-# this stage. It is read from a file of the repository, by its path relative to
-# the directory of the model.
-get.overview <- function() {
-  readLines('tutorial.md', encoding = 'UTF-8')
+# A plot of one evaluation of a calibration: the incidence it tried in each age
+# group, next to the base value of that group. The Calibration tab draws it under
+# the calibration curve, for the evaluation hovered on the error plot. `values` holds
+# the calibrated parameters and the simulated outputs of that evaluation, the
+# incidence of an age group named as p.incidence.<age group>.
+incidence.plot <- function(values) {
+  incidence <- Filter(function(p) p$name == 'p.incidence', get.parameters())[[1]]
+  base <- unname(unlist(incidence$base.value)[AGE.GROUPS])
+  tried <- unname(values[paste0('p.incidence.', AGE.GROUPS)])
+  df <- data.frame(group = rep(AGE.GROUPS, 2),
+                   series = rep(c('This evaluation', 'Base value'), each = length(AGE.GROUPS)),
+                   incidence = c(tried, base))
+  # The app shows the text aesthetic when a point is hovered.
+  df$text <- sprintf('Age %s, %s: %.4f', df$group, tolower(df$series), df$incidence)
+  ggplot(df, aes(x = group, y = incidence, colour = series, group = series, text = text)) +
+    geom_line() +
+    geom_point() +
+    scale_colour_manual(values = c(`This evaluation` = 'black', `Base value` = 'grey60')) +
+    labs(x = 'Age group', y = 'Annual incidence', colour = NULL) +
+    theme_minimal()
 }
 ```
 
-A model of your own returns a description of itself the same way: what
-it models, its strategies, and where its values come from. With the
-description in a file named `overview.md`, that is:
+- The function receives the values of one evaluation, as a named vector:
+  the calibrated parameters, named `<parameter>.<stratum>`, and the
+  simulated outputs.
+- It returns a ggplot. The app turns it into an interactive plot, which
+  shows the `text` aesthetic when a point is hovered.
+- It has to draw the same elements for every evaluation, since hovering
+  moves the values of the plot on screen rather than drawing it again.
+
+The scheme lists its plots under `evaluation.plots`, each under the
+title the tab shows it by:
 
 ``` r
-get.overview <- function() {
-  readLines('overview.md', encoding = 'UTF-8')
-}
+      # Plots of one evaluation, each under the title it is listed by.
+      evaluation.plots = list(`Incidence against its base value` = incidence.plot)
 ```
 
-Without it, the Overview tab lists the strategies and parameters, from
-the rest of the interface.
+The plot follows the evaluation hovered, or clicked, on the error plot.
+Here the best evaluation puts the incidence of every age group about a
+fifth below its base value:
 
-## The state diagram
+<figure style="margin: 15px 0;">
+<img src="https://raw.githubusercontent.com/david-gomez-guillen/cea-model-tutorial/presentation-4-plots/images/presentation4_calibration.png" alt="The evaluation plot under the calibration plots" style="max-width: 100%;" />
+<figcaption style="font-style: italic;">The evaluation plot under the calibration plots</figcaption>
+</figure>
 
-`get.model.states()` describes the states of the model and the
-transitions between them, which the Overview tab draws as a diagram. The
-model returns plain data, so it needs no plotting package:
+## The package it needs
+
+The interface now loads ggplot2, in the usual way:
 
 ``` r
-# The states of the model and the transitions between them, which the Overview
-# tab draws as a diagram. The descriptions are shown when a state or an arrow is
-# hovered.
-get.model.states <- function() {
-  list(
-    nodes = data.frame(
-      id = c('healthy', 'disease', 'dead'),
-      label = c('Healthy', 'Disease', 'Dead'),
-      description = c('Without the disease.', 'With the disease, found or not.', 'Absorbing state.')
-    ),
-    edges = data.frame(
-      from = c('healthy', 'disease', 'disease', 'healthy'),
-      to = c('disease', 'healthy', 'dead', 'dead'),
-      label = c('Onset', 'Recovery or screening', 'Death', 'Death'),
-      description = c('p.incidence', 'p.recovery, and sensitivity in a screening year',
-                      'p.death.disease', 'p.death')
-    )
-  )
-}
+library(ggplot2)
 ```
 
-- `nodes` are the states. Only `id` is required; `label` is what the box
-  shows.
-- `edges` are the transitions, `from` one state `to` another. Their
-  `label` is drawn on the arrow.
-- A `description`, on either, is shown when the state or the arrow is
-  hovered.
+Nothing else was needed: the app sees that line and installs the
+package. Setup 1 explains how, and what to do
+when that is not enough.
 
-The **Model state diagram** section at the top of this tab draws it.
-Drag a state to move it, and hover a state or an arrow for its
-description.
-
-## A code sample
-
-`get.code.sample()` returns code the Overview tab shows in a section of
-its own, to explain how the model works. It is shown and never run, so
-it can be a file as it stands, or a simplified version of the real code.
-A list gives each sample a tab, headed by its name, and a single sample
-needs no list:
-
-``` r
-# Code the Overview tab shows, to explain how the model works, a tab per sample.
-# It is shown and never run, so it can be a file as it stands, or a simplified
-# version of the real code.
-get.code.sample <- function() {
-  list(
-    `thalassa_interface.R` = readLines('thalassa_interface.R', encoding = 'UTF-8'),
-    `One year of the cohort` = "# The transitions of one year of the cohort
-onset <- healthy * p.incidence
-death.healthy <- healthy * p.death
-recovery <- disease * p.recovery
-death.disease <- disease * p.death.disease
-healthy <- healthy - onset - death.healthy + recovery
-disease <- disease + onset - recovery - death.disease
-dead <- dead + death.healthy + death.disease"
-  )
-}
-```
-
-The **Code sample** section at the top of this tab shows both.
-
-**Next:** pick the version **presentation-4-plots** in the model bar,
-for *Presentation 4: Evaluation plots*.
+**Next:** pick the version **setup-1-dependencies** in the model bar,
+for *Setup 1: The dependencies of a model*.
