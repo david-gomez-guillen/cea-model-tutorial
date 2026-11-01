@@ -2,6 +2,11 @@
 
 source('model.R')
 
+# The strata of the model: the age groups of model.R.
+get.strata <- function() {
+  AGE.GROUPS
+}
+
 # The names of the strategies, which is what run.simulation() is asked for.
 get.strategies <- function() {
   c('no_screening', 'screening_5y', 'screening_2y', 'screening_1y')
@@ -11,9 +16,11 @@ get.strategies <- function() {
 # can take (min.value, max.value) and what the PSA draws it from (distribution).
 get.parameters <- function() {
   list(
-    # Natural history of the disease
-    list(name = 'p.incidence', base.value = 0.01, min.value = 0, max.value = 1,
-         distribution = 'beta'),
+    # Natural history of the disease. The incidence grows with age, so it is
+    # stratified: its base.value is a list with a value per age group.
+    list(name = 'p.incidence',
+         base.value = list(`30-39` = 0.004, `40-49` = 0.008, `50-59` = 0.015, `60-69` = 0.025),
+         min.value = 0, max.value = 1, distribution = 'beta'),
     list(name = 'p.recovery', base.value = 0.05, min.value = 0, max.value = 1,
          distribution = 'beta'),
     list(name = 'p.death', base.value = 0.01, min.value = 0, max.value = 1,

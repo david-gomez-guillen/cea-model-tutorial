@@ -1,100 +1,127 @@
-# Logic 2: Ranges and distributions
+# Logic 3: Age groups
 
-*Stage 2 of 12 of the model integration tutorial, in its block on the
+*Stage 3 of 12 of the model integration tutorial, in its block on the
 logic of the model. Each stage is a version of this model: pick another
 one in the model bar to move to it. The **Code sample** section of this
 tab shows `thalassa_interface.R` as far as the tutorial has explained
 it.*
 
-The model of Logic 1 runs, but the app knows nothing
-about its parameters beyond their values: not what values they can take,
-nor how uncertain they are. In this stage each parameter says so. That
-lets the app refuse values that make no sense, and it is what the
-probabilistic sensitivity analysis (PSA) needs.
+A disease is rarely as likely at 65 as at 35. In this stage the
+incidence of the disease takes a different value in each age group.
+THALASSA calls these groups *strata*: a model declares its strata once,
+and any parameter can take one value per stratum.
 
-Only `thalassa_interface.R` changes. `model.R` is the same as in Logic
-1, and so are the results.
+Strata are optional. A model whose parameters are the same for everyone
+can skip this stage. But the calibration of Logic
+5 calibrates the incidence of each age group,
+so this model needs them.
 
-**Does your model need more than R and its usual packages?** If part of
-it is in another language, or it needs specific versions of R or of its
-packages, it may not load until its setup is right. Setup
-1 and Setup 2, at
-the end of this tutorial, explain how to do that, and you can read them
-at any time.
+## Declaring the strata
 
-## What each parameter says about its values
-
-Each entry of `get.parameters()` can carry more than its name and value:
+`get.strata()` returns the names of the strata. Here they are the age
+groups, which `model.R` defines:
 
 ``` r
-# The parameters of the model. Besides its name and value, each says the range it
-# can take (min.value, max.value) and what the PSA draws it from (distribution).
-get.parameters <- function() {
-  list(
-    # Natural history of the disease
-    list(name = 'p.incidence', base.value = 0.01, min.value = 0, max.value = 1,
-         distribution = 'beta'),
-    list(name = 'p.recovery', base.value = 0.05, min.value = 0, max.value = 1,
-         distribution = 'beta'),
-    list(name = 'p.death', base.value = 0.01, min.value = 0, max.value = 1,
-         distribution = 'beta'),
-    list(name = 'p.death.disease', base.value = 0.03, min.value = 0, max.value = 1,
-         distribution = 'beta'),
-
-    # Screening. The DSA varies the sensitivity over the range the literature
-    # gives for it, rather than by the percentage set in the DSA tab.
-    list(name = 'sensitivity', base.value = 0.75, min.value = 0, max.value = 1,
-         distribution = 'beta', dsa.range = c(0.6, 0.9)),
-
-    # Costs
-    list(name = 'cost.screening', base.value = 150, min.value = 0, distribution = 'gamma'),
-    list(name = 'cost.treatment', base.value = 2000, min.value = 0, distribution = 'gamma'),
-    list(name = 'cost.disease', base.value = 300, min.value = 0, distribution = 'gamma'),
-
-    # Quality of life
-    list(name = 'u.disease', base.value = 0.85, min.value = 0, max.value = 1,
-         distribution = 'beta'),
-
-    # The discount rate is a convention rather than an uncertain value: hidden,
-    # the user never sees or changes it.
-    list(name = 'discount.rate', base.value = 0.03, hidden = TRUE)
-  )
+# The strata of the model: the age groups of model.R.
+get.strata <- function() {
+  AGE.GROUPS
 }
 ```
 
-| Field | What it does |
-|----|----|
-| `min.value`, `max.value` | The range the parameter can take. The app refuses to run with a value outside it. |
-| `distribution` | What the PSA draws the parameter from: `"beta"`, `"gamma"`, `"normal"`, `"lognormal"` or `"exponential"`. |
-| `dsa.range` | The two values the DSA tries, lower first, instead of the base value ± the percentage set in the DSA tab. |
-| `hidden` | `TRUE` keeps the parameter out of the app. It is always simulated at its base value. |
+``` r
+# The age groups, which are the strata of the model: a parameter can take a
+# different value in each.
+AGE.GROUPS <- c('30-39', '40-49', '50-59', '60-69')
+```
 
-Some guidance on choosing them:
+## A stratified parameter
 
-- **Distributions.** Use beta for probabilities and utilities, which lie
-  between 0 and 1, and gamma for costs, which cannot be negative.
-  Lognormal suits relative risks and hazard ratios. A parameter with no
-  distribution is never sampled by the PSA.
-- **DSA ranges.** Give one when the literature reports an interval for
-  the parameter, as for the sensitivity of the test here.
-- **Hidden parameters.** The discount rate is a convention rather than
-  an uncertain value, so it is hidden, and no analysis varies it. The
-  model still receives it in `run.simulation()`.
+A stratified parameter gives its `base.value` as a list, with one value
+per stratum, named by the stratum:
+
+``` r
+    # Natural history of the disease. The incidence grows with age, so it is
+    # stratified: its base.value is a list with a value per age group.
+    list(name = 'p.incidence',
+         base.value = list(`30-39` = 0.004, `40-49` = 0.008, `50-59` = 0.015, `60-69` = 0.025),
+         min.value = 0, max.value = 1, distribution = 'beta'),
+```
+
+The other fields, such as `min.value` and `distribution`, are written
+once and hold for every stratum. A parameter can also be declared as one
+entry per stratum, each naming its `stratum` and giving its own
+`base.value`, which is how a field that differs between strata, such as
+`min.value`, is given:
+
+``` r
+list(name = 'p.incidence', stratum = '30-39', base.value = 0.004, ...),
+list(name = 'p.incidence', stratum = '40-49', base.value = 0.008, ...),
+```
+
+## What the model receives
+
+`run.simulation()` now receives a stratified parameter as a list with
+one value per stratum, named by the stratum. The other parameters are
+still single numbers:
+
+    List of 2
+     $ p.incidence:List of 4
+      ..$ 30-39: num 0.004
+      ..$ 40-49: num 0.008
+      ..$ 50-59: num 0.015
+      ..$ 60-69: num 0.025
+     $ p.recovery : num 0.05
+
+## Reading the parameters in the model
+
+`model.R` now looks up the age group of each year, and reads the value
+of every parameter in that group through a small function, `at()`:
+
+``` r
+age.group <- function(age) AGE.GROUPS[(age - START.AGE) %/% 10 + 1]
+
+# The value of a parameter in an age group. A stratified parameter is a list
+# with a value per age group, and any other is a single number, so every
+# parameter is read through at(): the Parameters tab lets the user split any of
+# them into age groups.
+at <- function(value, group) if (is.list(value)) value[[group]] else value
+```
+
+``` r
+    # The transitions of the year.
+    onset <- healthy * at(pars$p.incidence, group)
+    death.healthy <- healthy * at(pars$p.death, group)
+    recovery <- disease * at(pars$p.recovery, group)
+    death.disease <- disease * at(pars$p.death.disease, group)
+```
+
+Why read every parameter through `at()`, and not just the incidence?
+Because in a model with strata, the Parameters tab lets the user split
+*any* parameter into strata, with the checkbox at the start of its row.
+A parameter the user has split arrives as a list, like the incidence
+does. Reading every parameter the same way means the model handles both
+cases.
+
+The results change, since the incidence now rises with age:
+
+          strategy         C        E
+    1 no_screening  362.8502 20.04445
+    2 screening_5y  954.3307 20.29808
+    3 screening_2y 1884.2896 20.39993
+    4 screening_1y 3447.2018 20.44715
 
 ## What works now
 
-The **PSA** tab offers every parameter with a distribution. Pick a
-reference strategy and an alternative, tick the parameters, and click
-**Run PSA**:
+The incidence has a value per age group in the Parameters tab, and its
+checkbox is ticked:
 
 <figure style="margin: 15px 0;">
-<img src="https://raw.githubusercontent.com/david-gomez-guillen/cea-model-tutorial/logic-2-uncertainty/images/logic2_psa.png" alt="The PSA with the distributions of the parameters" style="max-width: 100%;" />
-<figcaption style="font-style: italic;">The PSA with the distributions of the parameters</figcaption>
+<img src="https://raw.githubusercontent.com/david-gomez-guillen/cea-model-tutorial/logic-3-strata/images/logic3_parameters.png" alt="A stratified parameter in the Parameters tab" style="max-width: 100%;" />
+<figcaption style="font-style: italic;">A stratified parameter in the Parameters tab</figcaption>
 </figure>
 
-Each point is one simulation with every ticked parameter drawn from its
-distribution. On the right, the acceptability curves show how often each
-strategy is cost-effective at each willingness to pay.
+Every other parameter can be split the same way, by ticking its
+checkbox.
 
-**Next:** pick the version **logic-3-strata** in the model bar, for
-*Logic 3: Age groups*.
+**Next:** pick the version **logic-4-constraints** in the model bar, for
+*Logic 4: Constraints on the parameters*.
