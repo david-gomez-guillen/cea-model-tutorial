@@ -1,84 +1,111 @@
-# Presentation 2: Strategy markers
+# Presentation 3: Explaining the model
 
-*Stage 8 of 12 of the model integration tutorial, in its block on the
+*Stage 9 of 12 of the model integration tutorial, in its block on the
 presentation of the model. Each stage is a version of this model: pick
 another one in the model bar to move to it. The **Code sample** section
-of this tab shows `thalassa_interface.R` as far as the tutorial has
-explained it.*
+of this tab shows the complete `thalassa_interface.R` of this stage.*
 
-On the base case plot, every strategy is a point. By default the app
-picks their shapes and colours itself. A model can choose them instead,
-from what describes each strategy: its *attributes*.
+This stage explains the model to the people who use it, in the Overview
+tab. Every function here is optional. This tutorial has used two of them
+since Logic 1, to show its pages and its code in that
+tab.
 
-## The attributes of the strategies
+## The overview
 
-Each strategy gives the values of its attributes:
+`get.overview()` returns the text of the Overview tab, in Markdown.
+Keeping the text in a file of its own makes it easier to edit. This
+tutorial uses it to show the page of this stage, which is in
+`tutorial.md`:
 
 ``` r
-# The strategies, each with the name run.simulation() is asked for, the name the
-# app shows, a description and its attributes, declared below.
-get.strategies <- function() {
+# The text of the Overview tab, in Markdown: here, the page of the tutorial for
+# this stage. It is read from a file of the repository, by its path relative to
+# the directory of the model.
+get.overview <- function() {
+  readLines('tutorial.md', encoding = 'UTF-8')
+}
+```
+
+A model of your own returns a description of itself the same way: what
+it models, its strategies, and where its values come from. With the
+description in a file named `overview.md`, that is:
+
+``` r
+get.overview <- function() {
+  readLines('overview.md', encoding = 'UTF-8')
+}
+```
+
+Without it, the Overview tab lists the strategies and parameters, from
+the rest of the interface.
+
+## The state diagram
+
+`get.model.states()` describes the states of the model and the
+transitions between them, which the Overview tab draws as a diagram. The
+model returns plain data, so it needs no plotting package:
+
+``` r
+# The states of the model and the transitions between them, which the Overview
+# tab draws as a diagram. The descriptions are shown when a state or an arrow is
+# hovered.
+get.model.states <- function() {
   list(
-    list(name = 'no_screening', display.name = 'No screening',
-         description = 'The disease is only found when it causes symptoms.',
-         attributes = list(screening = 'No')),
-    list(name = 'screening_5y', display.name = 'Screening every 5 years',
-         description = 'Everyone is screened at ages 34, 39, 44 and so on.',
-         attributes = list(screening = 'Yes', frequency = '2 per decade')),
-    list(name = 'screening_2y', display.name = 'Screening every 2 years',
-         description = 'Everyone is screened at ages 31, 33, 35 and so on.',
-         attributes = list(screening = 'Yes', frequency = '5 per decade')),
-    list(name = 'screening_1y', display.name = 'Yearly screening',
-         description = 'Everyone is screened every year.',
-         attributes = list(screening = 'Yes', frequency = '10 per decade'))
+    nodes = data.frame(
+      id = c('healthy', 'disease', 'dead'),
+      label = c('Healthy', 'Disease', 'Dead'),
+      description = c('Without the disease.', 'With the disease, found or not.', 'Absorbing state.')
+    ),
+    edges = data.frame(
+      from = c('healthy', 'disease', 'disease', 'healthy'),
+      to = c('disease', 'healthy', 'dead', 'dead'),
+      label = c('Onset', 'Recovery or screening', 'Death', 'Death'),
+      description = c('p.incidence', 'p.recovery, and sensitivity in a screening year',
+                      'p.death.disease', 'p.death')
+    )
   )
 }
 ```
 
-and `get.strategy.attributes()` declares them, and says which ones the
-plot draws:
+- `nodes` are the states. Only `id` is required; `label` is what the box
+  shows.
+- `edges` are the transitions, `from` one state `to` another. Their
+  `label` is drawn on the arrow.
+- A `description`, on either, is shown when the state or the arrow is
+  hovered.
+
+The **Model state diagram** section at the top of this tab draws it.
+Drag a state to move it, and hover a state or an arrow for its
+description.
+
+## A code sample
+
+`get.code.sample()` returns code the Overview tab shows in a section of
+its own, to explain how the model works. It is shown and never run, so
+it can be a file as it stands, or a simplified version of the real code.
+A list gives each sample a tab, headed by its name, and a single sample
+needs no list:
 
 ``` r
-# What describes the strategies: a column of the Strategies tab each, and how
-# the base case plot draws them. Whether a strategy screens is the shape of its
-# point, and how often it does its fill, darker the more often.
-get.strategy.attributes <- function() {
+# Code the Overview tab shows, to explain how the model works, a tab per sample.
+# It is shown and never run, so it can be a file as it stands, or a simplified
+# version of the real code.
+get.code.sample <- function() {
   list(
-    screening = list(label = 'Screening', plot = 'shape',
-                     values = c(No = 'square', Yes = 'circle')),
-    frequency = list(label = 'Screens', plot = 'fill', ordered = TRUE)
+    `thalassa_interface.R` = readLines('thalassa_interface.R', encoding = 'UTF-8'),
+    `One year of the cohort` = "# The transitions of one year of the cohort
+onset <- healthy * p.incidence
+death.healthy <- healthy * p.death
+recovery <- disease * p.recovery
+death.disease <- disease * p.death.disease
+healthy <- healthy - onset - death.healthy + recovery
+disease <- disease + onset - recovery - death.disease
+dead <- dead + death.healthy + death.disease"
   )
 }
 ```
 
-- `label` names the attribute in the Strategies tab and in the legend.
-- `plot` is what draws it: `"shape"`, `"fill"`, `"border"`, `"colour"`
-  or `"size"`. An attribute without `plot` is only a column of the
-  Strategies tab.
-- `values` picks the shape, or colour, of each value. Without it the app
-  chooses.
-- `ordered = TRUE` draws a colour from light to dark, in the order of
-  the numbers the values start with.
+The **Code sample** section at the top of this tab shows both.
 
-## What works now
-
-The Strategies tab lists the attributes, with the marker of each
-strategy:
-
-<figure style="margin: 15px 0;">
-<img src="https://raw.githubusercontent.com/david-gomez-guillen/cea-model-tutorial/presentation-2-markers/images/presentation2_strategies.png" alt="The Strategies tab with the attributes" style="max-width: 100%;" />
-<figcaption style="font-style: italic;">The Strategies tab with the attributes</figcaption>
-</figure>
-
-and the base case plot draws them, with a legend for each attribute:
-
-<figure style="margin: 15px 0;">
-<img src="https://raw.githubusercontent.com/david-gomez-guillen/cea-model-tutorial/presentation-2-markers/images/presentation2_basecase.png" alt="The base case plot with the markers of the attributes" style="max-width: 100%;" />
-<figcaption style="font-style: italic;">The base case plot with the markers of the attributes</figcaption>
-</figure>
-
-Not screening has no frequency of screens, so its fill takes the neutral
-grey of the “—” entry of the legend.
-
-**Next:** pick the version **presentation-3-overview** in the model bar,
-for *Presentation 3: Explaining the model*.
+**Next:** pick the version **presentation-4-plots** in the model bar,
+for *Presentation 4: Evaluation plots*.

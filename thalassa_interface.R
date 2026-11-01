@@ -170,15 +170,46 @@ get.calibration.schemes <- function() {
 
 # ---- What the Overview tab shows ---------------------------------------------
 
-# The page of the tutorial for this stage, in Markdown, as the text of the
-# Overview tab. Presentation 3 explains this function and the next.
+# The text of the Overview tab, in Markdown: here, the page of the tutorial for
+# this stage. It is read from a file of the repository, by its path relative to
+# the directory of the model.
 get.overview <- function() {
   readLines('tutorial.md', encoding = 'UTF-8')
 }
 
-# This file down to this section, shown in the Code sample section of the
-# Overview tab. This section is left out until Presentation 3 explains it.
+# The states of the model and the transitions between them, which the Overview
+# tab draws as a diagram. The descriptions are shown when a state or an arrow is
+# hovered.
+get.model.states <- function() {
+  list(
+    nodes = data.frame(
+      id = c('healthy', 'disease', 'dead'),
+      label = c('Healthy', 'Disease', 'Dead'),
+      description = c('Without the disease.', 'With the disease, found or not.', 'Absorbing state.')
+    ),
+    edges = data.frame(
+      from = c('healthy', 'disease', 'disease', 'healthy'),
+      to = c('disease', 'healthy', 'dead', 'dead'),
+      label = c('Onset', 'Recovery or screening', 'Death', 'Death'),
+      description = c('p.incidence', 'p.recovery, and sensitivity in a screening year',
+                      'p.death.disease', 'p.death')
+    )
+  )
+}
+
+# Code the Overview tab shows, to explain how the model works, a tab per sample.
+# It is shown and never run, so it can be a file as it stands, or a simplified
+# version of the real code.
 get.code.sample <- function() {
-  code <- readLines('thalassa_interface.R', encoding = 'UTF-8')
-  code[seq_len(grep('^# ---- What the Overview tab shows', code) - 2)]
+  list(
+    `thalassa_interface.R` = readLines('thalassa_interface.R', encoding = 'UTF-8'),
+    `One year of the cohort` = "# The transitions of one year of the cohort
+onset <- healthy * p.incidence
+death.healthy <- healthy * p.death
+recovery <- disease * p.recovery
+death.disease <- disease * p.death.disease
+healthy <- healthy - onset - death.healthy + recovery
+disease <- disease + onset - recovery - death.disease
+dead <- dead + death.healthy + death.disease"
+  )
 }
