@@ -1,5 +1,4 @@
-# What THALASSA reads the model through. These are the three functions every
-# model has to define; everything else is optional.
+# What THALASSA reads the model through.
 
 source('model.R')
 
@@ -8,19 +7,37 @@ get.strategies <- function() {
   c('no_screening', 'screening_5y', 'screening_2y', 'screening_1y')
 }
 
-# The parameters of the model and the value each takes by default.
+# The parameters of the model. Besides its name and value, each says the range it
+# can take (min.value, max.value) and what the PSA draws it from (distribution).
 get.parameters <- function() {
   list(
-    list(name = 'p.incidence', base.value = 0.01),
-    list(name = 'p.recovery', base.value = 0.05),
-    list(name = 'p.death', base.value = 0.01),
-    list(name = 'p.death.disease', base.value = 0.03),
-    list(name = 'sensitivity', base.value = 0.75),
-    list(name = 'cost.screening', base.value = 150),
-    list(name = 'cost.treatment', base.value = 2000),
-    list(name = 'cost.disease', base.value = 300),
-    list(name = 'u.disease', base.value = 0.85),
-    list(name = 'discount.rate', base.value = 0.03)
+    # Natural history of the disease
+    list(name = 'p.incidence', base.value = 0.01, min.value = 0, max.value = 1,
+         distribution = 'beta'),
+    list(name = 'p.recovery', base.value = 0.05, min.value = 0, max.value = 1,
+         distribution = 'beta'),
+    list(name = 'p.death', base.value = 0.01, min.value = 0, max.value = 1,
+         distribution = 'beta'),
+    list(name = 'p.death.disease', base.value = 0.03, min.value = 0, max.value = 1,
+         distribution = 'beta'),
+
+    # Screening. The DSA varies the sensitivity over the range the literature
+    # gives for it, rather than by the percentage set in the DSA tab.
+    list(name = 'sensitivity', base.value = 0.75, min.value = 0, max.value = 1,
+         distribution = 'beta', dsa.range = c(0.6, 0.9)),
+
+    # Costs
+    list(name = 'cost.screening', base.value = 150, min.value = 0, distribution = 'gamma'),
+    list(name = 'cost.treatment', base.value = 2000, min.value = 0, distribution = 'gamma'),
+    list(name = 'cost.disease', base.value = 300, min.value = 0, distribution = 'gamma'),
+
+    # Quality of life
+    list(name = 'u.disease', base.value = 0.85, min.value = 0, max.value = 1,
+         distribution = 'beta'),
+
+    # The discount rate is a convention rather than an uncertain value: hidden,
+    # the user never sees or changes it.
+    list(name = 'discount.rate', base.value = 0.03, hidden = TRUE)
   )
 }
 
