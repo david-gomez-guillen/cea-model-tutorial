@@ -108,4 +108,4 @@ dead <- dead + death.healthy + death.disease"
 The **Code sample** section at the top of this tab shows both.
 
 **Next:** pick the version **presentation-4-plots** in the model bar,
-for *Presentation 4: Evaluation plots*.
+for *Presentation 4: Plots*.
