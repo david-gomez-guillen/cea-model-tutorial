@@ -64,11 +64,11 @@ strategy.plots <- function(trace) {
   axis, and a line in each of the others: here the share of the cohort
   in each state.
 
-Each is a tab of the Base case tab, after the cost-effectiveness plane,
-with a button for each strategy under the tabs. Every strategy is drawn
-on the same vertical axis, so going from one to the next shows what
-screening changes. The prevalence of a screening strategy drops at every
-screen:
+Each is a tab of the simulation plots of the Base case tab, after the
+efficiency curve, with a button for each strategy under the tabs. Every
+strategy is drawn on the same vertical axis, so going from one to the
+next shows what screening changes. The prevalence of a screening
+strategy drops at every screen:
 
 <figure style="margin: 15px 0;">
 <img src="https://raw.githubusercontent.com/david-gomez-guillen/cea-model-tutorial/presentation-4-plots/images/presentation4_basecase.png" alt="A plot of the model in the Base case tab" style="max-width: 100%;" />
