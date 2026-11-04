@@ -31,7 +31,7 @@ around its code.
 | Presentation 1. Names and units | `presentation-1-names` | Display names, sections, descriptions, units | Readable tabs |
 | Presentation 2. Strategy markers | `presentation-2-markers` | The attributes of the strategies | Chosen markers on the plot |
 | Presentation 3. Explaining the model | `presentation-3-overview` | Overview text, state diagram, code sample | A documented model |
-| Presentation 4. Evaluation plots | `presentation-4-plots` | A plot of each calibration evaluation | Plots of your own |
+| Presentation 4. Plots | `presentation-4-plots` | Plots of the base case and of each calibration evaluation | Plots of your own |
 | Setup 1. The dependencies of a model | `setup-1-dependencies` | How packages get installed, and pinned versions | Results that don’t change with new releases |
 | Setup 2. A conda environment of your own | `setup-2-environment` | An `environment.yml` | Other languages and system libraries |
 
