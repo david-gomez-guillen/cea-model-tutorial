@@ -108,14 +108,30 @@ get.parameters <- function() {
 
 # Simulates each strategy with the parameter values the app gives, a named list,
 # and returns their cost (C) and effectiveness (E) in a data frame named summary.
-run.simulation <- function(strategies, parameters) {
+# With make.plots, which only the Base case tab sets, it also returns the plots
+# of each strategy, keyed by its name.
+run.simulation <- function(strategies, parameters, make.plots = FALSE) {
   results <- lapply(strategies, simulate, pars = parameters)
   summary <- data.frame(
     strategy = strategies,
     C = sapply(results, function(r) r$cost),
     E = sapply(results, function(r) r$effectiveness)
   )
-  list(summary = summary)
+  output <- list(summary = summary)
+  if (make.plots) output$plots <- setNames(lapply(results, function(r) strategy.plots(r$trace)), strategies)
+  output
+}
+
+# The plots the Base case tab shows of one strategy, from the trace of its
+# simulation, each under the title of its tab. A numeric vector is one line, its
+# names being the x axis. A data frame has the x axis in its first column and a
+# line in each of the others.
+strategy.plots <- function(trace) {
+  list(
+    Prevalence = setNames(trace$disease / (trace$healthy + trace$disease), trace$age),
+    `Cohort by state` = data.frame(Age = trace$age, Healthy = trace$healthy,
+                                   Disease = trace$disease, Dead = trace$dead)
+  )
 }
 
 # ---- Calibration ------------------------------------------------------------
