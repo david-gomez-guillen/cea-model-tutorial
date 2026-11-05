@@ -40,9 +40,9 @@ This one involves two parameters, and is attached to both:
     # The constraint is declared on both parameters it involves, so the app
     # points at both, whichever of them the user changes.
     list(name = 'p.death', base.value = 0.01, min.value = 0, max.value = 1,
-         distribution = 'beta', constraints = death.more.likely.with.disease),
+         distribution = 'probability', constraints = death.more.likely.with.disease),
     list(name = 'p.death.disease', base.value = 0.03, min.value = 0, max.value = 1,
-         distribution = 'beta', constraints = death.more.likely.with.disease),
+         distribution = 'probability', constraints = death.more.likely.with.disease),
 ```
 
 A few things to know:
