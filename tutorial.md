@@ -33,27 +33,27 @@ get.parameters <- function() {
   list(
     # Natural history of the disease
     list(name = 'p.incidence', base.value = 0.01, min.value = 0, max.value = 1,
-         distribution = 'beta'),
+         distribution = 'probability'),
     list(name = 'p.recovery', base.value = 0.05, min.value = 0, max.value = 1,
-         distribution = 'beta'),
+         distribution = 'probability'),
     list(name = 'p.death', base.value = 0.01, min.value = 0, max.value = 1,
-         distribution = 'beta'),
+         distribution = 'probability'),
     list(name = 'p.death.disease', base.value = 0.03, min.value = 0, max.value = 1,
-         distribution = 'beta'),
+         distribution = 'probability'),
 
     # Screening. The DSA varies the sensitivity over the range the literature
     # gives for it, rather than by the percentage set in the DSA tab.
     list(name = 'sensitivity', base.value = 0.75, min.value = 0, max.value = 1,
-         distribution = 'beta', dsa.range = c(0.6, 0.9)),
+         distribution = 'probability', dsa.range = c(0.6, 0.9)),
 
     # Costs
-    list(name = 'cost.screening', base.value = 150, min.value = 0, distribution = 'gamma'),
-    list(name = 'cost.treatment', base.value = 2000, min.value = 0, distribution = 'gamma'),
-    list(name = 'cost.disease', base.value = 300, min.value = 0, distribution = 'gamma'),
+    list(name = 'cost.screening', base.value = 150, min.value = 0, distribution = 'cost'),
+    list(name = 'cost.treatment', base.value = 2000, min.value = 0, distribution = 'cost'),
+    list(name = 'cost.disease', base.value = 300, min.value = 0, distribution = 'cost'),
 
     # Quality of life
     list(name = 'u.disease', base.value = 0.85, min.value = 0, max.value = 1,
-         distribution = 'beta'),
+         distribution = 'utility'),
 
     # The discount rate is a convention rather than an uncertain value: hidden,
     # the user never sees or changes it.
@@ -65,15 +65,18 @@ get.parameters <- function() {
 | Field | What it does |
 |----|----|
 | `min.value`, `max.value` | The range the parameter can take. The app refuses to run with a value outside it. |
-| `distribution` | What the PSA draws the parameter from: `"beta"`, `"gamma"`, `"normal"`, `"lognormal"` or `"exponential"`. |
+| `distribution` | What the PSA draws the parameter from. Either what kind of quantity it is, `"probability"`, `"utility"` or `"cost"`, or a distribution: `"beta"`, `"gamma"`, `"normal"`, `"lognormal"` or `"exponential"`. |
 | `dsa.range` | The two values the DSA tries, lower first, instead of the base value ± the percentage set in the DSA tab. |
 | `hidden` | `TRUE` keeps the parameter out of the app. It is always simulated at its base value. |
 
 Some guidance on choosing them:
 
-- **Distributions.** Use beta for probabilities and utilities, which lie
-  between 0 and 1, and gamma for costs, which cannot be negative.
-  Lognormal suits relative risks and hazard ratios. A parameter with no
+- **Distributions.** Say what kind of quantity a parameter is, and the
+  app picks the distribution. A `"probability"` or a `"utility"` lies
+  between 0 and 1, and is drawn from a beta. A `"cost"` cannot be
+  negative, and is drawn from a gamma or a lognormal, whichever the PSA
+  tab is set to. Name a distribution only for anything else: lognormal
+  suits relative risks and hazard ratios. A parameter with no
   distribution is never sampled by the PSA.
 - **DSA ranges.** Give one when the literature reports an interval for
   the parameter, as for the sensitivity of the test here.
@@ -95,6 +98,15 @@ reference strategy and an alternative, tick the parameters, and click
 Each point is one simulation with every ticked parameter drawn from its
 distribution. On the right, the acceptability curves show how often each
 strategy is cost-effective at each willingness to pay.
+
+Since the model declares costs, the PSA settings also show **Cost
+distribution**, under the number of simulations: what the costs are
+drawn from, **Gamma** or **Lognormal**. A lognormal has a longer right
+tail, so it allows the occasional far higher cost. The switch starts on
+gamma. A model whose costs are better described by a lognormal can start
+it there with `cost.distribution = 'lognormal'` in
+`get.model.settings()`, an optional function Logic
+5 introduces.
 
 **Next:** pick the version **logic-3-strata** in the model bar, for
 *Logic 3: Age groups*.

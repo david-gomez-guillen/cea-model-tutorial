@@ -13,27 +13,27 @@ get.parameters <- function() {
   list(
     # Natural history of the disease
     list(name = 'p.incidence', base.value = 0.01, min.value = 0, max.value = 1,
-         distribution = 'beta'),
+         distribution = 'probability'),
     list(name = 'p.recovery', base.value = 0.05, min.value = 0, max.value = 1,
-         distribution = 'beta'),
+         distribution = 'probability'),
     list(name = 'p.death', base.value = 0.01, min.value = 0, max.value = 1,
-         distribution = 'beta'),
+         distribution = 'probability'),
     list(name = 'p.death.disease', base.value = 0.03, min.value = 0, max.value = 1,
-         distribution = 'beta'),
+         distribution = 'probability'),
 
     # Screening. The DSA varies the sensitivity over the range the literature
     # gives for it, rather than by the percentage set in the DSA tab.
     list(name = 'sensitivity', base.value = 0.75, min.value = 0, max.value = 1,
-         distribution = 'beta', dsa.range = c(0.6, 0.9)),
+         distribution = 'probability', dsa.range = c(0.6, 0.9)),
 
     # Costs
-    list(name = 'cost.screening', base.value = 150, min.value = 0, distribution = 'gamma'),
-    list(name = 'cost.treatment', base.value = 2000, min.value = 0, distribution = 'gamma'),
-    list(name = 'cost.disease', base.value = 300, min.value = 0, distribution = 'gamma'),
+    list(name = 'cost.screening', base.value = 150, min.value = 0, distribution = 'cost'),
+    list(name = 'cost.treatment', base.value = 2000, min.value = 0, distribution = 'cost'),
+    list(name = 'cost.disease', base.value = 300, min.value = 0, distribution = 'cost'),
 
     # Quality of life
     list(name = 'u.disease', base.value = 0.85, min.value = 0, max.value = 1,
-         distribution = 'beta'),
+         distribution = 'utility'),
 
     # The discount rate is a convention rather than an uncertain value: hidden,
     # the user never sees or changes it.
