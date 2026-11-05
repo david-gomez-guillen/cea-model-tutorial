@@ -44,7 +44,7 @@ per stratum, named by the stratum:
     # stratified: its base.value is a list with a value per age group.
     list(name = 'p.incidence',
          base.value = list(`30-39` = 0.004, `40-49` = 0.008, `50-59` = 0.015, `60-69` = 0.025),
-         min.value = 0, max.value = 1, distribution = 'beta'),
+         min.value = 0, max.value = 1, distribution = 'probability'),
 ```
 
 The other fields, such as `min.value` and `distribution`, are written
