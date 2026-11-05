@@ -38,29 +38,29 @@ get.parameters <- function() {
     # stratified: its base.value is a list with a value per age group.
     list(name = 'p.incidence',
          base.value = list(`30-39` = 0.004, `40-49` = 0.008, `50-59` = 0.015, `60-69` = 0.025),
-         min.value = 0, max.value = 1, distribution = 'beta'),
+         min.value = 0, max.value = 1, distribution = 'probability'),
     list(name = 'p.recovery', base.value = 0.05, min.value = 0, max.value = 1,
-         distribution = 'beta'),
+         distribution = 'probability'),
     # The constraint is declared on both parameters it involves, so the app
     # points at both, whichever of them the user changes.
     list(name = 'p.death', base.value = 0.01, min.value = 0, max.value = 1,
-         distribution = 'beta', constraints = death.more.likely.with.disease),
+         distribution = 'probability', constraints = death.more.likely.with.disease),
     list(name = 'p.death.disease', base.value = 0.03, min.value = 0, max.value = 1,
-         distribution = 'beta', constraints = death.more.likely.with.disease),
+         distribution = 'probability', constraints = death.more.likely.with.disease),
 
     # Screening. The DSA varies the sensitivity over the range the literature
     # gives for it, rather than by the percentage set in the DSA tab.
     list(name = 'sensitivity', base.value = 0.75, min.value = 0, max.value = 1,
-         distribution = 'beta', dsa.range = c(0.6, 0.9)),
+         distribution = 'probability', dsa.range = c(0.6, 0.9)),
 
     # Costs
-    list(name = 'cost.screening', base.value = 150, min.value = 0, distribution = 'gamma'),
-    list(name = 'cost.treatment', base.value = 2000, min.value = 0, distribution = 'gamma'),
-    list(name = 'cost.disease', base.value = 300, min.value = 0, distribution = 'gamma'),
+    list(name = 'cost.screening', base.value = 150, min.value = 0, distribution = 'cost'),
+    list(name = 'cost.treatment', base.value = 2000, min.value = 0, distribution = 'cost'),
+    list(name = 'cost.disease', base.value = 300, min.value = 0, distribution = 'cost'),
 
     # Quality of life
     list(name = 'u.disease', base.value = 0.85, min.value = 0, max.value = 1,
-         distribution = 'beta'),
+         distribution = 'utility'),
 
     # The discount rate is a convention rather than an uncertain value: hidden,
     # the user never sees or changes it.
